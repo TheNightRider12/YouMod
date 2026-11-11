@@ -8,11 +8,11 @@ on:
       repo:
         description: 'Repository to build from'
         required: true
-        default: 'Tonwalter888/YouMod'
+        default: 'TheNightRider12/YouMod'
       branch:
         description: 'Branch to build from'
         required: true
-        default: 'main'
+        default: 'pre-release'
 
 concurrency:
   group: ${{ github.workflow }}
