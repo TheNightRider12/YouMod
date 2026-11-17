@@ -1,10 +1,8 @@
-// Settings.x
-// Thanks to the original codes from YTUHD by PoomSmart - https://github.com/PoomSmart/YTUHD/blob/0e735616fd8fc6546339da7fdc78466f16f23ffd/Settings.x
 #import "Headers.h"
 
 #define TweakName @"YouMod"
 
-#define YMLOC(x) [YouModBundle() localizedStringForKey:x value:nil table:nil]
+#define YMLOC(x) [[YMHelpers bundle] localizedStringForKey:x value:nil table:nil]
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
@@ -36,7 +34,7 @@ static NSArray<YMSettingsItem *> *gYMYouModHomeItems = nil;
 static void YMPushYouModHome(id settingsVC) {
     if (!gYMYouModHomeItems) return;
     UIViewController *root;
-    if (isPadHardware()) {
+    if ([YMHelpers isPadHardware]) {
         root = YMNewSplitSettings(gYMYouModHomeItems);
     } else {
         YMSubSettingsViewController *home = (YMSubSettingsViewController *)YMNewSubSettings(TweakName, gYMYouModHomeItems);
@@ -51,8 +49,7 @@ static void YMPushYouModHome(id settingsVC) {
 // Shared by the search registration and the home row.
 static NSArray<YMSettingsItem *> *YMTabBarItems(void) {
     NSDictionary *tabYTIconMap = @{@"home": @(65), @"shorts": @(769), @"subscriptions": @(66), @"library": @(61)};
-    NSDictionary *tabBundleIconMap = @{@"history": @"icons/history", @"gaming": @"icons/gaming", @"sports": @"icons/sports", @"notifications": @"icons/noti", @"news": @"icons/news", @"music": @"icons/music", @"watchlater": @"icons/watchlater", @"playlist": @"icons/playlist", @"like": @"icons/like", @"live": @"icons/live", @"post": @"icons/post", @"video": @"icons/video", @"movie": @"icons/movie", @"course": @"icons/course", @"minigame": @"icons/minigame", @"fashion": @"icons/fashion", @"learning": @"icons/learning", @"download": @"icons/download"};
-    YTAssetLoader *assetLoader = [[%c(YTAssetLoader) alloc] initWithBundle:YouModBundle()];
+    NSDictionary *tabBundleIconMap = @{@"history": @"history", @"gaming": @"gaming", @"sports": @"sports", @"notifications": @"noti", @"news": @"news", @"music": @"music", @"watchlater": @"watchlater", @"playlist": @"playlist", @"like": @"like", @"live": @"live", @"post": @"post", @"video": @"video", @"movie": @"movie", @"course": @"course", @"minigame": @"minigame", @"fashion": @"fashion", @"learning": @"learning", @"download": @"download", @"charts": @"charts"};
 
     NSMutableArray<UIImage *> *defaultTabImages = [NSMutableArray array];
     NSArray *savedOrder = [[NSUserDefaults standardUserDefaults] arrayForKey:TabOrder];
@@ -67,12 +64,12 @@ static NSArray<YMSettingsItem *> *YMTabBarItems(void) {
             if (isDownloadTab) downloadInOrder = YES;
             NSNumber *ytIconType = tabYTIconMap[tabID];
             if (ytIconType) {
-                UIImage *img = YouModYTIconImage([ytIconType intValue], YES, [UIColor whiteColor]);
+                UIImage *img = [YMHelpers ytIconImage:[ytIconType intValue] useCustomColor:YES customColor:[UIColor whiteColor]];
                 if (img) [defaultTabImages addObject:img];
             } else {
                 NSString *bundleName = tabBundleIconMap[tabID];
                 if (bundleName) {
-                    UIImage *img = [assetLoader imageNamed:bundleName];
+                    UIImage *img = [YMIconProvider tabIcon:bundleName selected:NO];
                     if (img) {
                         UIImage *whiteImg = [img imageWithTintColor:[UIColor whiteColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
                         [defaultTabImages addObject:whiteImg];
@@ -81,7 +78,7 @@ static NSArray<YMSettingsItem *> *YMTabBarItems(void) {
             }
         }
         if (!downloadInOrder && IS_ENABLED(DownloadLibraryTab)) {
-            UIImage *img = [assetLoader imageNamed:@"icons/download"];
+            UIImage *img = [YMIconProvider tabIcon:@"download" selected:NO];
             if (img) {
                 UIImage *whiteImg = [img imageWithTintColor:[UIColor whiteColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
                 [defaultTabImages addObject:whiteImg];
@@ -91,7 +88,7 @@ static NSArray<YMSettingsItem *> *YMTabBarItems(void) {
     if (defaultTabImages.count == 0) {
         NSArray *fallbackIcons = @[@(65), @(769), @(66), @(61)];
         for (NSNumber *iconType in fallbackIcons) {
-            UIImage *img = YouModYTIconImage([iconType intValue], YES, [UIColor whiteColor]);
+            UIImage *img = [YMHelpers ytIconImage:[iconType intValue] useCustomColor:YES customColor:[UIColor whiteColor]];
             if (img) [defaultTabImages addObject:img];
         }
     }
@@ -266,6 +263,7 @@ static NSArray<YMSettingsItem *> *YMPreferencesItems(void) {
             YMToggle(YMLOC(@"HIDE_VOICE_SEARCH_BUTTON"), YMLOC(@"HIDE_VOICE_SEARCH_BUTTON_DESC"), HideVoiceSearch),
             YMToggle(YMLOC(@"HIDE_CAST_BUTTON_NAVBAR"), YMLOC(@"HIDE_CAST_BUTTON_NAVBAR_DESC"), HideCastButtonNav),
             YMToggle(YMLOC(@"HIDE_MESSAGES_BUTTON"), YMLOC(@"HIDE_MESSAGES_BUTTON_DESC"), HideMessages),
+            YMToggle(YMLOC(@"HIDE_SHARE_BUTTON_NAVBAR"), YMLOC(@"HIDE_SHARE_BUTTON_NAVBAR_DESC"), HideShareButtonNav),
             YMPicker(YMLOC(@"NAVIGATION_ICON"), YMLOC(@"NAVIGATION_ICON_DESC"), YTLogoIndex, (@[YMLOC(@"DEFAULT"), YMLOC(@"PREMIUM"), YMLOC(@"YOUTUBE"), YMLOC(@"REMOVE_YTLOGO")]), 0),
     ];
     YMRegisterSettingsGroup(YMLOC(@"NAVBAR"), navbarItems);
@@ -293,10 +291,10 @@ static NSArray<YMSettingsItem *> *YMPreferencesItems(void) {
             YMPicker(YMLOC(@"QUALITY_CELLULAR"), YMLOC(@"QUALITY_CELLULAR_DESC"), CellQualityIndex, (@[YMLOC(@"DEFAULT"), YMLOC(@"BEST"), @"2160p", @"1440p", @"1080p", @"720p", @"480p", @"360p", @"240p", @"144p"]), 0),
             YMPicker(YMLOC(@"QUALITY_LOW_POWER"), YMLOC(@"QUALITY_LOW_POWER_DESC"), LowPowerQualityIndex, (@[YMLOC(@"DEFAULT"), YMLOC(@"BEST"), @"2160p", @"1440p", @"1080p", @"720p", @"480p", @"360p", @"240p", @"144p"]), 0),
             YMTextSegment(YMLOC(@"AUDIO_TRACK"), AudioTrack, (@[YMLOC(@"DEFAULT"), YMLOC(@"ORIGINAL"), YMLOC(@"SELECT_MANUALLY")]), 0),
-            [YMPicker(YMLOC(@"AUDIO_TRACK_SELECT"), YMLOC(@"AUDIO_TRACK_SELECT_DESC"), AudioTrackLangIndex, getAllSystemLanguageTitles(), 0) visibleWhenKey:AudioTrack equals:2],
+            [YMPicker(YMLOC(@"AUDIO_TRACK_SELECT"), YMLOC(@"AUDIO_TRACK_SELECT_DESC"), AudioTrackLangIndex, [YMHelpers allSystemLanguageTitles], 0) visibleWhenKey:AudioTrack equals:2],
             [YMToggle(YMLOC(@"NO_AUTO_DUBBED"), YMLOC(@"NO_AUTO_DUBBED_DESC"), NoDubbedAudioTrack) visibleWhenKey:AudioTrack equals:2],
             YMTextSegment(YMLOC(@"CAPTION_TRACK"), CaptionTrack, (@[YMLOC(@"DEFAULT"), YMLOC(@"DISABLED"), YMLOC(@"SELECT_MANUALLY")]), 0),
-            [YMPicker(YMLOC(@"CAPTION_TRACK_SELECT"), YMLOC(@"CAPTION_TRACK_SELECT_DESC"), CaptionTrackLangIndex, getAllSystemLanguageTitles(), 0) visibleWhenKey:CaptionTrack equals:2],
+            [YMPicker(YMLOC(@"CAPTION_TRACK_SELECT"), YMLOC(@"CAPTION_TRACK_SELECT_DESC"), CaptionTrackLangIndex, [YMHelpers allSystemLanguageTitles], 0) visibleWhenKey:CaptionTrack equals:2],
             [YMToggle(YMLOC(@"DISABLES_CAPTION_TRACK"), YMLOC(@"DISABLES_CAPTION_TRACK_DESC"), DisablesCaptionTrack) visibleWhenKey:CaptionTrack equals:2],
             YMHeader(@""),
             YMToggle(YMLOC(@"NO_AUTO_TRANSLATED_TITLES"), YMLOC(@"NO_AUTO_TRANSLATED_TITLES_DESC"), NoTranslatedTitles),
@@ -395,6 +393,9 @@ static NSArray<YMSettingsItem *> *YMPreferencesItems(void) {
             YMToggle(YMLOC(@"HIDE_SHORTS_RECBAR"), YMLOC(@"HIDE_SHORTS_RECBAR_DESC"), HideShortsRecbar),
             YMToggle(YMLOC(@"REMOVE_SHORTS_SUB_BUTTON"), YMLOC(@"REMOVE_SHORTS_SUB_BUTTON_DESC"), RemoveShortsSubButton),
             YMToggle(YMLOC(@"HIDE_SHORTS_DISCLOSURE"), YMLOC(@"HIDE_SHORTS_DISCLOSURE_DESC"), RemoveShortsDisclosure),
+            YMToggle(YMLOC(@"REMOVE_SHORTS_VIDEO_TITLE"), YMLOC(@"REMOVE_SHORTS_VIDEO_TITLE_DESC"), RemoveShortsVideoTitle),
+            YMToggle(YMLOC(@"REMOVE_SHORTS_CHANNEL_NAME"), YMLOC(@"REMOVE_SHORTS_CHANNEL_NAME_DESC"), RemoveShortsChannelName),
+            YMToggle(YMLOC(@"REMOVE_SHORTS_CHANNEL_PROFILE"), YMLOC(@"REMOVE_SHORTS_CHANNEL_PROFILE_DESC"), RemoveShortsChannelProfile),
             YMToggle(YMLOC(@"REMOVE_SHORTS_COMMENT_BAR"), YMLOC(@"REMOVE_SHORTS_COMMENT_BAR_DESC"), RemoveShortsCommentBar),
             YMToggle(YMLOC(@"REMOVE_SHORTS_RELATED_BUTTONS"), YMLOC(@"REMOVE_SHORTS_RELATED_BUTTONS_DESC"), RemoveShortsRelatedButtons),
             YMToggle(YMLOC(@"REMOVE_SHORTS_LIKE_BUTTON"), YMLOC(@"REMOVE_SHORTS_LIKE_BUTTON_DESC"), RemoveShortsLikeButton),
@@ -402,6 +403,7 @@ static NSArray<YMSettingsItem *> *YMPreferencesItems(void) {
             YMToggle(YMLOC(@"REMOVE_SHORTS_SAVE_BUTTON"), YMLOC(@"REMOVE_SHORTS_SAVE_BUTTON_DESC"), RemoveShortsSaveButton),
             YMToggle(YMLOC(@"REMOVE_SHORTS_SHARE_BUTTON"), YMLOC(@"REMOVE_SHORTS_SHARE_BUTTON_DESC"), RemoveShortsShareButton),
             YMToggle(YMLOC(@"REMOVE_SHORTS_REMIX_BUTTON"), YMLOC(@"REMOVE_SHORTS_REMIX_BUTTON_DESC"), RemoveShortsRemixButton),
+            YMToggle(YMLOC(@"REMOVE_SHORTS_ASK_BUTTON"), YMLOC(@"REMOVE_SHORTS_ASK_BUTTON_DESC"), RemoveShortsAskButton),
             YMToggle(YMLOC(@"REMOVE_SHORTS_SOUNDMETADATA_BUTTON"), YMLOC(@"REMOVE_SHORTS_SOUNDMETADATA_BUTTON_DESC"), RemoveShortsSoundMetadataButton),
             YMToggle(YMLOC(@"REMOVE_SHORTS_PAUSED_SUB_BUTTON"), YMLOC(@"REMOVE_SHORTS_PAUSED_SUB_BUTTON_DESC"), RemoveShortsPausedSubButton),
             YMToggle(YMLOC(@"REMOVE_SHORTS_PAUSED_LIVE_BUTTON"), YMLOC(@"REMOVE_SHORTS_PAUSED_LIVE_BUTTON_DESC"), RemoveShortsPausedLiveButton),
@@ -416,6 +418,7 @@ static NSArray<YMSettingsItem *> *YMPreferencesItems(void) {
 
     // Miscellaneous
     NSArray<YMSettingsItem *> *miscItems = @[
+            YMToggle(YMLOC(@"LIQUID_GLASS"), YMLOC(@"LIQUID_GLASS_DESC"), LiquidGlass),
             YMToggle(YMLOC(@"BACKGROUND_PLAYBACK"), YMLOC(@"BACKGROUND_PLAYBACK_DESC"), BackgroundPlayback),
             YMToggle(YMLOC(@"DISABLES_SHORTS_PIP"), YMLOC(@"DISABLES_SHORTS_PIP_DESC"), DisablesShortsPiP),
             YMToggle(YMLOC(@"DISABLE_HINTS"), YMLOC(@"DISABLE_HINTS_DESC"), DisableHints),
@@ -481,11 +484,11 @@ static NSArray<YMSettingsItem *> *YMPreferencesItems(void) {
     // Section rows — nav rows carrying their sub-page (pushed on iPhone, shown
     // in the iPad split view's detail pane). No captured view controllers here:
     // the page data lives on the row and the push target resolves at tap time.
-    [homeItems addObject:[[YMNavAction(YMLOC(@"DOWNLOADING"), nil, nil) withSubmenuItems:downloadingItems kind:YMSubmenuKindSettings] withIconType:57]];
-    [homeItems addObject:[[YMNavAction(YMLOC(@"APPEARANCE"), nil, nil) withSubmenuItems:appearanceItems kind:YMSubmenuKindSettings] withIconType:921]];
-    [homeItems addObject:[[YMNavAction(YMLOC(@"NAVBAR"), nil, nil) withSubmenuItems:navbarItems kind:YMSubmenuKindSettings] withIconType:60]];
+    [homeItems addObject:[[YMNavAction(YMLOC(@"DOWNLOADING"), nil, nil) withSubmenuItems:downloadingItems kind:YMSubmenuKindSettings] withBundleIcon:@"download_settings"]];
+    [homeItems addObject:[[YMNavAction(YMLOC(@"APPEARANCE"), nil, nil) withSubmenuItems:appearanceItems kind:YMSubmenuKindSettings] withBundleIcon:@"appearance_settings"]];
+    [homeItems addObject:[[YMNavAction(YMLOC(@"NAVBAR"), nil, nil) withSubmenuItems:navbarItems kind:YMSubmenuKindSettings] withBundleIcon:@"navigationbar_settings"]];
     [homeItems addObject:[[YMNavAction(YMLOC(@"FEED"), nil, nil) withSubmenuItems:feedItems kind:YMSubmenuKindSettings] withIconType:193]];
-    [homeItems addObject:[[YMNavAction(YMLOC(@"PLAYER"), nil, nil) withSubmenuItems:playerItems kind:YMSubmenuKindSettings] withIconType:658]];
+    [homeItems addObject:[[YMNavAction(YMLOC(@"PLAYER"), nil, nil) withSubmenuItems:playerItems kind:YMSubmenuKindSettings] withBundleIcon:@"player_settings"]];
     [homeItems addObject:[[YMNavAction(YMLOC(@"SHORTS"), nil, nil) withSubmenuItems:shortsItems kind:YMSubmenuKindSettings] withIconType:769]];
     [homeItems addObject:[[YMNavAction(YMLOC(@"TABBAR"), nil, nil) withSubmenuItems:tabbarItems kind:YMSubmenuKindSettings] withIconType:66]];
     [homeItems addObject:[[YMNavAction(YMLOC(@"MISCELLANEOUS"), nil, nil) withSubmenuItems:miscItems kind:YMSubmenuKindSettings] withIconType:1101]];
@@ -509,13 +512,9 @@ static NSArray<YMSettingsItem *> *YMPreferencesItems(void) {
 
     gYMYouModHomeItems = [homeItems copy];
 
-    // The native section itself is empty — the "YouMod" cell opens the home page.
-    if ([settingsViewController respondsToSelector:@selector(setSectionItems:forCategory:title:icon:titleDescription:headerHidden:)]) {
-        YTIIcon *icon = [%c(YTIIcon) new];
-        icon.iconType = YT_TUNE;
-        [settingsViewController setSectionItems:nil forCategory:TweakSection title:TweakName icon:icon titleDescription:nil headerHidden:NO];
-    } else
-        [settingsViewController setSectionItems:nil forCategory:TweakSection title:TweakName titleDescription:nil headerHidden:NO];
+    YTIIcon *icon = [%c(YTIIcon) new];
+    icon.iconType = YT_TUNE;
+    [settingsViewController setSectionItems:nil forCategory:TweakSection title:TweakName icon:icon titleDescription:nil headerHidden:NO];
 }
 
 - (void)updateSectionForCategory:(NSUInteger)category withEntry:(id)entry {
@@ -546,9 +545,7 @@ static NSArray<YMSettingsItem *> *YMPreferencesItems(void) {
 %end
 
 %ctor {
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    [defaults registerDefaults:@{
-        HoldToSpeedEnabled: @NO,
+    [[NSUserDefaults standardUserDefaults] registerDefaults:@{
         AutoClearCache: @YES,
         NotifyUpdates: @YES,
         YTLogoIndex: @1,
